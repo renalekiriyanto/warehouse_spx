@@ -1,0 +1,66 @@
+<?php
+
+namespace Tests\Feature;
+
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\WithFaker;
+use Tests\TestCase;
+
+use App\Models\CutoffInboun;
+use App\Models\User;
+
+class CutoffInbounTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->user = User::factory()->create();
+    }
+
+    public function test_can_list_cutoff_inbouns()
+    {
+        CutoffInboun::factory(3)->create();
+        $response = $this->actingAs($this->user, 'sanctum')->getJson('/api/cutoff-inbouns');
+        $response->assertStatus(200)->assertJsonCount(3);
+    }
+
+    public function test_can_create_cutoff_inboun()
+    {
+        $payload = [
+            'name' => 'Morning Cutoff',
+            'slug' => 'morning-cutoff',
+            'is_active' => true,
+            'time_start' => '08:00:00',
+            'time_end' => '12:00:00',
+        ];
+        $response = $this->actingAs($this->user, 'sanctum')->postJson('/api/cutoff-inbouns', $payload);
+        $response->assertStatus(201)->assertJsonFragment(['name' => 'Morning Cutoff']);
+        $this->assertDatabaseHas('cutoff_inbouns', ['slug' => 'morning-cutoff']);
+    }
+
+    public function test_can_show_cutoff_inboun()
+    {
+        $cutoff = CutoffInboun::factory()->create();
+        $response = $this->actingAs($this->user, 'sanctum')->getJson("/api/cutoff-inbouns/{$cutoff->id}");
+        $response->assertStatus(200)->assertJsonFragment(['id' => $cutoff->id]);
+    }
+
+    public function test_can_update_cutoff_inboun()
+    {
+        $cutoff = CutoffInboun::factory()->create();
+        $payload = ['name' => 'Updated Name'];
+        $response = $this->actingAs($this->user, 'sanctum')->putJson("/api/cutoff-inbouns/{$cutoff->id}", $payload);
+        $response->assertStatus(200)->assertJsonFragment(['name' => 'Updated Name']);
+        $this->assertDatabaseHas('cutoff_inbouns', ['id' => $cutoff->id, 'name' => 'Updated Name']);
+    }
+
+    public function test_can_delete_cutoff_inboun()
+    {
+        $cutoff = CutoffInboun::factory()->create();
+        $response = $this->actingAs($this->user, 'sanctum')->deleteJson("/api/cutoff-inbouns/{$cutoff->id}");
+        $response->assertStatus(204);
+        $this->assertDatabaseMissing('cutoff_inbouns', ['id' => $cutoff->id]);
+    }
+}
