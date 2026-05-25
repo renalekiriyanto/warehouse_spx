@@ -50,4 +50,21 @@ class ProjectionController extends Controller
         $projection->delete();
         return response()->json(null, 204);
     }
+
+    /**
+     * Upload and import Projection data from CSV/Excel.
+     */
+    public function upload(\Illuminate\Http\Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:csv,xlsx,xls|max:10240', // 10MB max
+        ]);
+
+        \Maatwebsite\Excel\Facades\Excel::import(
+            new \App\Imports\ProjectionImport, 
+            $request->file('file')
+        );
+
+        return response()->json(['message' => 'File successfully uploaded and processed.'], 201);
+    }
 }

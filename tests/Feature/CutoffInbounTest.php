@@ -22,7 +22,7 @@ class CutoffInbounTest extends TestCase
     public function test_can_list_cutoff_inbouns()
     {
         CutoffInboun::factory(3)->create();
-        $response = $this->actingAs($this->user, 'sanctum')->getJson('/api/cutoff-inbouns');
+        $response = $this->actingAs($this->user, 'sanctum')->getJson('/api/cutoff-inbounds');
         $response->assertStatus(200)->assertJsonCount(3);
     }
 
@@ -35,7 +35,7 @@ class CutoffInbounTest extends TestCase
             'time_start' => '08:00:00',
             'time_end' => '12:00:00',
         ];
-        $response = $this->actingAs($this->user, 'sanctum')->postJson('/api/cutoff-inbouns', $payload);
+        $response = $this->actingAs($this->user, 'sanctum')->postJson('/api/cutoff-inbounds', $payload);
         $response->assertStatus(201)->assertJsonFragment(['name' => 'Morning Cutoff']);
         $this->assertDatabaseHas('cutoff_inbouns', ['slug' => 'morning-cutoff']);
     }
@@ -43,7 +43,7 @@ class CutoffInbounTest extends TestCase
     public function test_can_show_cutoff_inboun()
     {
         $cutoff = CutoffInboun::factory()->create();
-        $response = $this->actingAs($this->user, 'sanctum')->getJson("/api/cutoff-inbouns/{$cutoff->id}");
+        $response = $this->actingAs($this->user, 'sanctum')->getJson("/api/cutoff-inbounds/{$cutoff->id}");
         $response->assertStatus(200)->assertJsonFragment(['id' => $cutoff->id]);
     }
 
@@ -51,7 +51,7 @@ class CutoffInbounTest extends TestCase
     {
         $cutoff = CutoffInboun::factory()->create();
         $payload = ['name' => 'Updated Name'];
-        $response = $this->actingAs($this->user, 'sanctum')->putJson("/api/cutoff-inbouns/{$cutoff->id}", $payload);
+        $response = $this->actingAs($this->user, 'sanctum')->putJson("/api/cutoff-inbounds/{$cutoff->id}", $payload);
         $response->assertStatus(200)->assertJsonFragment(['name' => 'Updated Name']);
         $this->assertDatabaseHas('cutoff_inbouns', ['id' => $cutoff->id, 'name' => 'Updated Name']);
     }
@@ -59,7 +59,7 @@ class CutoffInbounTest extends TestCase
     public function test_can_delete_cutoff_inboun()
     {
         $cutoff = CutoffInboun::factory()->create();
-        $response = $this->actingAs($this->user, 'sanctum')->deleteJson("/api/cutoff-inbouns/{$cutoff->id}");
+        $response = $this->actingAs($this->user, 'sanctum')->deleteJson("/api/cutoff-inbounds/{$cutoff->id}");
         $response->assertStatus(204);
         $this->assertDatabaseMissing('cutoff_inbouns', ['id' => $cutoff->id]);
     }

@@ -11,7 +11,8 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-Route::apiResource('cutoff-inbouns', CutoffInbounController::class);
+Route::apiResource('cutoff-inbounds', CutoffInbounController::class);
+Route::post('projections/upload', [ProjectionController::class, 'upload']);
 Route::apiResource('projections', ProjectionController::class);
 Route::apiResource('type-slots', TypeSlotController::class);
 

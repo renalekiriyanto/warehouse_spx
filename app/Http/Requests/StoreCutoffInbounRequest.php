@@ -16,6 +16,19 @@ class StoreCutoffInbounRequest extends FormRequest
     }
 
     /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation(): void
+    {
+        
+        if ($this->has('name')) {
+            $this->merge([
+                'slug' => \Illuminate\Support\Str::slug($this->name),
+            ]);
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, ValidationRule|array<mixed>|string>
@@ -23,11 +36,11 @@ class StoreCutoffInbounRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
-            'slug' => ['required', 'string', 'max:255', 'unique:cutoff_inbouns,slug'],
+            'name' => ['required', 'string'],
+            'slug' => ['required', 'string', 'unique:cutoff_inbouns,slug'],
             'is_active' => ['boolean'],
-            'time_start' => ['required', 'date_format:H:i:s', 'before:time_end'],
-            'time_end' => ['required', 'date_format:H:i:s', 'after:time_start'],
+            'time_start' => ['required', 'date_format:H:i:s'],
+            'time_end' => ['required', 'date_format:H:i:s'],
         ];
     }
 }
