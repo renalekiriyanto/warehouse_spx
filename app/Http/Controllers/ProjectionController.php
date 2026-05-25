@@ -60,10 +60,31 @@ class ProjectionController extends Controller
             'file' => 'required|mimes:csv,xlsx,xls|max:10240', // 10MB max
         ]);
 
-        \Maatwebsite\Excel\Facades\Excel::import(
-            new \App\Imports\ProjectionImport, 
-            $request->file('file')
-        );
+        try {
+            \Maatwebsite\Excel\Facades\Excel::import(
+                new \App\Imports\ProjectionImport, 
+                $request->file('file')
+            );
+        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
+            $failures = $e->failures();
+            $errors = [];
+            foreach ($failures as $failure) {
+                $errors[] = [
+                    'row' => $failure->row(),
+                    'attribute' => $failure->attribute(),
+                    'errors' => $failure->errors(),
+                    'values' => $failure->values(),
+                ];
+            }
+            return response()->json([
+                'message' => 'Validation Error', 
+                'errors' => $errors
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error processing file: ' . $e->getMessage()
+            ], 500);
+        }
 
         return response()->json(['message' => 'File successfully uploaded and processed.'], 201);
     }

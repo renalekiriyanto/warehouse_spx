@@ -16,10 +16,32 @@ class ProjectionImport implements ToModel, WithHeadingRow, WithValidation
      */
     public function model(array $row)
     {
-        return new Projection([
-            'projected_inbound' => $row['projected_inbound'],
-            'date_inbound'      => $row['date_inbound'],
+        $projection = Projection::firstOrNew([
+            'date_inbound' => $row['inbound_date'],
         ]);
+        
+        $projection->projected_inbound = $row['projected_lm_inbound'];
+        
+        return $projection;
+    }
+
+    /**
+     * @param array $data
+     * @param int $index
+     * @return array
+     */
+    public function prepareForValidation($data, $index)
+    {
+        // Convert Excel serial date to standard Y-m-d format if it's numeric
+        if (isset($data['inbound_date']) && is_numeric($data['inbound_date'])) {
+            try {
+                $data['inbound_date'] = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($data['inbound_date'])->format('Y-m-d');
+            } catch (\Exception $e) {
+                // Ignore and let Laravel validation fail
+            }
+        }
+        
+        return $data;
     }
 
     /**
@@ -28,8 +50,8 @@ class ProjectionImport implements ToModel, WithHeadingRow, WithValidation
     public function rules(): array
     {
         return [
-            'projected_inbound' => ['required', 'integer', 'min:0'],
-            'date_inbound'      => ['required', 'date'],
+            'projected_lm_inbound' => ['required', 'integer', 'min:0'],
+            'inbound_date'         => ['required', 'date'],
         ];
     }
 }
