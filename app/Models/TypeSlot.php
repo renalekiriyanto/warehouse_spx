@@ -11,4 +11,9 @@ class TypeSlot extends Model
 {
     /** @use HasFactory<\Database\Factories\TypeSlotFactory> */
     use HasFactory;
+
+    public function estimasiArrivals()
+    {
+        return $this->hasMany(EstimasiArrival::class);
+    }
 }

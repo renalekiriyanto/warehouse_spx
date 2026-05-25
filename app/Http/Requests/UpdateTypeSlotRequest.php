@@ -15,6 +15,15 @@ class UpdateTypeSlotRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('name')) {
+            $this->merge([
+                'slug' => \Illuminate\Support\Str::slug($this->name),
+            ]);
+        }
+    }
+
     /**
      * Get the validation rules that apply to the request.
      *

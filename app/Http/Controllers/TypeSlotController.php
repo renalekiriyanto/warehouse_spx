@@ -13,7 +13,7 @@ class TypeSlotController extends Controller
      */
     public function index()
     {
-        return response()->json(TypeSlot::all());
+        return response()->json(TypeSlot::with('estimasiArrivals')->get());
     }
 
     /**
@@ -30,7 +30,7 @@ class TypeSlotController extends Controller
      */
     public function show(TypeSlot $typeSlot)
     {
-        return response()->json($typeSlot);
+        return response()->json($typeSlot->load('estimasiArrivals'));
     }
 
     /**

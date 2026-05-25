@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreTypeSlotRequest extends FormRequest
+class StoreEstimasiArrivalRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -13,15 +13,6 @@ class StoreTypeSlotRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
-    }
-
-    protected function prepareForValidation(): void
-    {
-        if ($this->has('name')) {
-            $this->merge([
-                'slug' => \Illuminate\Support\Str::slug($this->name),
-            ]);
-        }
     }
 
     /**
@@ -32,9 +23,10 @@ class StoreTypeSlotRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
-            'slug' => ['required', 'string', 'max:255', 'unique:type_slots,slug'],
-            'is_additional' => ['boolean'],
+            'type_slot_id' => ['required', 'integer', 'exists:type_slots,id'],
+            'time_start' => ['required', 'date_format:H:i:s'],
+            'time_end' => ['required', 'date_format:H:i:s'],
+            'is_active' => ['boolean'],
         ];
     }
 }

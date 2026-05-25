@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\CutoffInbounController;
 use App\Http\Controllers\Api\SocialiteController;
+use App\Http\Controllers\EstimasiArrivalController;
 use App\Http\Controllers\ProjectionController;
 use App\Http\Controllers\TypeSlotController;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ Route::apiResource('cutoff-inbounds', CutoffInbounController::class);
 Route::post('projections/upload', [ProjectionController::class, 'upload']);
 Route::apiResource('projections', ProjectionController::class);
 Route::apiResource('type-slots', TypeSlotController::class);
+Route::apiResource('estimasi-arrivals', EstimasiArrivalController::class);
 
 Route::get('/auth/{provider}/redirect', [SocialiteController::class, 'redirect']);
 Route::get('/auth/{provider}/callback', [SocialiteController::class, 'callback']);
