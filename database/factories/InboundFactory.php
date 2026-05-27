@@ -18,7 +18,8 @@ class InboundFactory extends Factory
     public function definition(): array
     {
         return [
-            'actual_arrival' => fake()->time(),
+            'date_inbound' => fake()->date(),
+            'actual_arrival' => fake()->time('H:i:s'),
             'bulky' => fake()->numberBetween(0, 100),
             'total_order' => fake()->numberBetween(10, 1000),
         ];

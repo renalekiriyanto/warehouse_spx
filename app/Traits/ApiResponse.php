@@ -21,4 +21,22 @@ trait ApiResponse
             'data' => $data,
         ], $code);
     }
+
+    /**
+     * Build an error response
+     *
+     * @param  string  $message
+     * @param  mixed  $data
+     * @param  int  $code
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function errorResponse($message = 'Terjadi kesalahan.', $data = null, $code = 400)
+    {
+        return response()->json([
+            'success' => false,
+            'message' => $message,
+            'code' => $code,
+            'data' => $data,
+        ], $code);
+    }
 }

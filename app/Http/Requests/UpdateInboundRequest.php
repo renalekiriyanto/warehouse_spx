@@ -23,6 +23,7 @@ class UpdateInboundRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'date_inbound' => ['sometimes', 'nullable', 'date'],
             'actual_arrival' => ['sometimes', 'nullable', 'date_format:H:i:s'],
             'bulky' => ['sometimes', 'required', 'integer', 'min:0'],
             'total_order' => ['sometimes', 'required', 'integer', 'min:0'],

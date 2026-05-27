@@ -61,21 +61,13 @@ class ProjectionController extends Controller
                     'values' => $failure->values(),
                 ];
             }
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation Error',
-                'code' => 422,
-                'data' => $errors,
-            ], 422);
+            return $this->errorResponse('Validasi file gagal. Periksa format data pada baris yang dilaporkan.', $errors, 422);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error processing file: ' . $e->getMessage(),
-                'code' => 500,
-                'data' => null,
+            return $this->errorResponse('Gagal memproses file upload projection.', [
+                'error' => $e->getMessage(),
             ], 500);
         }
 
-        return $this->successResponse('File successfully uploaded and processed.', null, 201);
+        return $this->successResponse('File projection berhasil diunggah dan diproses.', null, 201);
     }
 }

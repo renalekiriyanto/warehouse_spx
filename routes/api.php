@@ -18,6 +18,9 @@ Route::post('projections/upload', [ProjectionController::class, 'upload']);
 Route::apiResource('projections', ProjectionController::class);
 Route::apiResource('type-slots', TypeSlotController::class);
 Route::apiResource('estimasi-arrivals', EstimasiArrivalController::class);
+Route::post('inbounds/upload', [InboundController::class, 'upload']);
+Route::get('inbounds/analysis/daily', [InboundController::class, 'dailyAnalysis']);
+Route::get('inbounds/{inbound}/cycle', [InboundController::class, 'cycleContext']);
 Route::apiResource('inbounds', InboundController::class);
 
 Route::get('/auth/{provider}/redirect', [SocialiteController::class, 'redirect']);

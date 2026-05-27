@@ -16,11 +16,12 @@ class SocialiteController extends Controller
     {
         try {
             $url = Socialite::driver($provider)->stateless()->redirect()->getTargetUrl();
-            return response()->json([
+            return $this->successResponse('URL redirect OAuth berhasil dibuat.', [
+                'provider' => $provider,
                 'url' => $url,
             ]);
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Provider not supported'], 400);
+            return $this->errorResponse('Provider OAuth tidak didukung atau konfigurasi belum valid.', null, 400);
         }
     }
 
@@ -32,7 +33,7 @@ class SocialiteController extends Controller
         try {
             $socialUser = Socialite::driver($provider)->stateless()->user();
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Authentication failed or invalid token'], 401);
+            return $this->errorResponse('Autentikasi OAuth gagal atau token tidak valid.', null, 401);
         }
 
         $user = User::updateOrCreate(
@@ -46,8 +47,8 @@ class SocialiteController extends Controller
 
         $token = $user->createToken('api-token')->plainTextToken;
 
-        return response()->json([
-            'message' => 'Login successful',
+        return $this->successResponse('Login OAuth berhasil.', [
+            'provider' => $provider,
             'user' => $user,
             'token' => $token,
         ]);

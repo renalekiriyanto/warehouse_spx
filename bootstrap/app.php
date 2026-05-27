@@ -19,17 +19,18 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->is('api/*')) {
                 $code = 500;
                 $data = null;
-                $message = $e->getMessage() ?: 'Internal Server Error';
+                $message = $e->getMessage() ?: 'Terjadi kesalahan pada server.';
 
                 if ($e instanceof \Illuminate\Validation\ValidationException) {
                     $code = 422;
-                    $message = 'The given data was invalid.';
+                    $message = 'Data yang dikirim tidak valid.';
                     $data = $e->errors();
                 } elseif ($e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
                     $code = 404;
-                    $message = 'Data not found.';
+                    $message = 'Data yang diminta tidak ditemukan.';
                 } elseif ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
                     $code = $e->getStatusCode();
+                    $message = $e->getMessage() ?: 'Permintaan tidak dapat diproses.';
                 }
 
                 return response()->json([

@@ -23,6 +23,7 @@ class StoreInboundRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'date_inbound' => ['nullable', 'date'],
             'actual_arrival' => ['nullable', 'date_format:H:i:s'],
             'bulky' => ['required', 'integer', 'min:0'],
             'total_order' => ['required', 'integer', 'min:0'],

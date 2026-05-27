@@ -11,8 +11,22 @@ class Inbound extends Model
     use HasFactory;
 
     protected $fillable = [
+        'date_inbound',
         'actual_arrival',
         'bulky',
         'total_order',
     ];
+
+    protected $casts = [
+        'date_inbound' => 'date',
+    ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Inbound $inbound) {
+            if (! $inbound->date_inbound) {
+                $inbound->date_inbound = now()->toDateString();
+            }
+        });
+    }
 }
