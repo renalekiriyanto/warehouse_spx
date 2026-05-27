@@ -9,46 +9,31 @@ use App\Models\CutoffInboun;
 
 class CutoffInbounController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        return response()->json(CutoffInboun::all());
+        return $this->successResponse('Berhasil mengambil data cutoff inbound', CutoffInboun::all());
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(StoreCutoffInbounRequest $request)
     {
         $cutoffInboun = CutoffInboun::create($request->validated());
-        return response()->json($cutoffInboun, 201);
+        return $this->successResponse('Data cutoff inbound berhasil ditambahkan', $cutoffInboun, 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(CutoffInboun $cutoffInbound)
     {
-        return response()->json($cutoffInbound);
+        return $this->successResponse('Berhasil mengambil detail cutoff inbound', $cutoffInbound);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(UpdateCutoffInbounRequest $request, CutoffInboun $cutoffInbound)
     {
         $cutoffInbound->update($request->validated());
-        return response()->json($cutoffInbound);
+        return $this->successResponse('Data cutoff inbound berhasil diupdate', $cutoffInbound);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(CutoffInboun $cutoffInbound)
     {
         $cutoffInbound->delete();
-        return response()->json(null, 204);
+        return $this->successResponse('Data cutoff inbound berhasil dihapus');
     }
 }

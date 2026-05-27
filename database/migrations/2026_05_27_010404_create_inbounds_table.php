@@ -11,11 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('estimasi_arrivals', function (Blueprint $table) {
+        Schema::create('inbounds', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('type_slot_id')->constrained('type_slots')->cascadeOnDelete();
-            $table->time('estimasi_arrival');
-            $table->boolean('status')->default(true);
+            $table->time('actual_arrival')->nullable();
+            $table->integer('bulky')->default(0);
+            $table->integer('total_order')->default(0);
             $table->timestamps();
         });
     }
@@ -25,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('estimasi_arrivals');
+        Schema::dropIfExists('inbounds');
     }
 };

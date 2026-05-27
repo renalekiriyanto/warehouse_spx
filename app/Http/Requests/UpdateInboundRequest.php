@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateEstimasiArrivalRequest extends FormRequest
+class UpdateInboundRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -23,9 +23,9 @@ class UpdateEstimasiArrivalRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'type_slot_id' => ['sometimes', 'required', 'integer', 'exists:type_slots,id'],
-            'estimasi_arrival' => ['sometimes', 'required', 'date_format:H:i:s'],
-            'status' => ['boolean'],
+            'actual_arrival' => ['sometimes', 'nullable', 'date_format:H:i:s'],
+            'bulky' => ['sometimes', 'required', 'integer', 'min:0'],
+            'total_order' => ['sometimes', 'required', 'integer', 'min:0'],
         ];
     }
 }

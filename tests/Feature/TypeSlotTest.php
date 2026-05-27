@@ -18,13 +18,18 @@ class TypeSlotTest extends TestCase
     {
         TypeSlot::factory(3)->create();
         $response = $this->getJson('/api/type-slots');
-        $response->assertStatus(200)->assertJsonCount(3);
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('code', 200)
+            ->assertJsonCount(3, 'data');
     }
 
     public function test_index_returns_empty_array_when_no_type_slots()
     {
         $response = $this->getJson('/api/type-slots');
-        $response->assertStatus(200)->assertJsonCount(0);
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(0, 'data');
     }
 
     public function test_index_includes_estimasi_arrivals_relation()
@@ -35,7 +40,9 @@ class TypeSlotTest extends TestCase
         $response = $this->getJson('/api/type-slots');
         $response->assertStatus(200)
             ->assertJsonStructure([
-                '*' => ['id', 'name', 'slug', 'is_additional', 'estimasi_arrivals'],
+                'data' => [
+                    '*' => ['id', 'name', 'slug', 'is_additional', 'estimasi_arrivals'],
+                ],
             ]);
     }
 
@@ -49,6 +56,8 @@ class TypeSlotTest extends TestCase
         ];
         $response = $this->postJson('/api/type-slots', $payload);
         $response->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('code', 201)
             ->assertJsonFragment(['name' => 'Premium Slot', 'is_additional' => true]);
         $this->assertDatabaseHas('type_slots', ['slug' => 'premium-slot', 'is_additional' => 1]);
     }
@@ -65,7 +74,8 @@ class TypeSlotTest extends TestCase
     {
         $response = $this->postJson('/api/type-slots', []);
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['name']);
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('code', 422);
     }
 
     public function test_store_fails_with_duplicate_slug()
@@ -74,7 +84,8 @@ class TypeSlotTest extends TestCase
         $payload = ['name' => 'Duplicate'];
         $response = $this->postJson('/api/type-slots', $payload);
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['slug']);
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('code', 422);
     }
 
     public function test_store_defaults_is_additional_to_false()
@@ -94,13 +105,18 @@ class TypeSlotTest extends TestCase
     {
         $typeSlot = TypeSlot::factory()->create();
         $response = $this->getJson("/api/type-slots/{$typeSlot->id}");
-        $response->assertStatus(200)->assertJsonFragment(['id' => $typeSlot->id]);
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('code', 200)
+            ->assertJsonFragment(['id' => $typeSlot->id]);
     }
 
     public function test_show_returns_404_for_nonexistent_type_slot()
     {
         $response = $this->getJson('/api/type-slots/9999');
-        $response->assertStatus(404);
+        $response->assertStatus(404)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('code', 404);
     }
 
     public function test_show_includes_estimasi_arrivals()
@@ -110,7 +126,7 @@ class TypeSlotTest extends TestCase
 
         $response = $this->getJson("/api/type-slots/{$typeSlot->id}");
         $response->assertStatus(200)
-            ->assertJsonStructure(['estimasi_arrivals']);
+            ->assertJsonStructure(['data' => ['estimasi_arrivals']]);
     }
 
     // ── UPDATE ────────────────────────────────────────────
@@ -120,7 +136,9 @@ class TypeSlotTest extends TestCase
         $typeSlot = TypeSlot::factory()->create();
         $payload = ['name' => 'Updated Slot Name'];
         $response = $this->putJson("/api/type-slots/{$typeSlot->id}", $payload);
-        $response->assertStatus(200)->assertJsonFragment(['name' => 'Updated Slot Name']);
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonFragment(['name' => 'Updated Slot Name']);
         $this->assertDatabaseHas('type_slots', ['id' => $typeSlot->id, 'name' => 'Updated Slot Name']);
     }
 
@@ -142,13 +160,16 @@ class TypeSlotTest extends TestCase
         $payload = ['name' => 'Existing'];
         $response = $this->putJson("/api/type-slots/{$typeSlot->id}", $payload);
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['slug']);
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('code', 422);
     }
 
     public function test_update_returns_404_for_nonexistent()
     {
         $response = $this->putJson('/api/type-slots/9999', ['name' => 'Nope']);
-        $response->assertStatus(404);
+        $response->assertStatus(404)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('code', 404);
     }
 
     // ── DELETE ─────────────────────────────────────────────
@@ -157,7 +178,10 @@ class TypeSlotTest extends TestCase
     {
         $typeSlot = TypeSlot::factory()->create();
         $response = $this->deleteJson("/api/type-slots/{$typeSlot->id}");
-        $response->assertStatus(204);
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('code', 200)
+            ->assertJsonPath('message', 'Data type slot berhasil dihapus');
         $this->assertDatabaseMissing('type_slots', ['id' => $typeSlot->id]);
     }
 
@@ -166,7 +190,7 @@ class TypeSlotTest extends TestCase
         $typeSlot = TypeSlot::factory()->create();
         $arrival = EstimasiArrival::factory()->create(['type_slot_id' => $typeSlot->id]);
 
-        $this->deleteJson("/api/type-slots/{$typeSlot->id}")->assertStatus(204);
+        $this->deleteJson("/api/type-slots/{$typeSlot->id}")->assertStatus(200);
         $this->assertDatabaseMissing('type_slots', ['id' => $typeSlot->id]);
         $this->assertDatabaseMissing('estimasi_arrivals', ['id' => $arrival->id]);
     }
@@ -174,6 +198,8 @@ class TypeSlotTest extends TestCase
     public function test_delete_returns_404_for_nonexistent()
     {
         $response = $this->deleteJson('/api/type-slots/9999');
-        $response->assertStatus(404);
+        $response->assertStatus(404)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('code', 404);
     }
 }

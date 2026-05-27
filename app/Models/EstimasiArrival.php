@@ -11,13 +11,12 @@ class EstimasiArrival extends Model
 
     protected $fillable = [
         'type_slot_id',
-        'time_start',
-        'time_end',
-        'is_active',
+        'estimasi_arrival',
+        'status',
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
+        'status' => 'boolean',
     ];
 
     public function typeSlot()

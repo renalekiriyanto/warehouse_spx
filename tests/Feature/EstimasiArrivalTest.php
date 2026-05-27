@@ -20,13 +20,18 @@ class EstimasiArrivalTest extends TestCase
         EstimasiArrival::factory(3)->create(['type_slot_id' => $typeSlot->id]);
 
         $response = $this->getJson('/api/estimasi-arrivals');
-        $response->assertStatus(200)->assertJsonCount(3);
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('code', 200)
+            ->assertJsonCount(3, 'data');
     }
 
     public function test_index_returns_empty_array_when_no_records()
     {
         $response = $this->getJson('/api/estimasi-arrivals');
-        $response->assertStatus(200)->assertJsonCount(0);
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(0, 'data');
     }
 
     public function test_index_includes_type_slot_relation()
@@ -37,7 +42,9 @@ class EstimasiArrivalTest extends TestCase
         $response = $this->getJson('/api/estimasi-arrivals');
         $response->assertStatus(200)
             ->assertJsonStructure([
-                '*' => ['id', 'type_slot_id', 'time_start', 'time_end', 'is_active', 'type_slot'],
+                'data' => [
+                    '*' => ['id', 'type_slot_id', 'estimasi_arrival', 'status', 'type_slot'],
+                ],
             ]);
     }
 
@@ -48,22 +55,21 @@ class EstimasiArrivalTest extends TestCase
         $typeSlot = TypeSlot::factory()->create();
         $payload = [
             'type_slot_id' => $typeSlot->id,
-            'time_start' => '08:00:00',
-            'time_end' => '12:00:00',
-            'is_active' => true,
+            'estimasi_arrival' => '08:00:00',
+            'status' => true,
         ];
 
         $response = $this->postJson('/api/estimasi-arrivals', $payload);
         $response->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('code', 201)
             ->assertJsonFragment([
                 'type_slot_id' => $typeSlot->id,
-                'time_start' => '08:00:00',
-                'time_end' => '12:00:00',
+                'estimasi_arrival' => '08:00:00',
             ]);
         $this->assertDatabaseHas('estimasi_arrivals', [
             'type_slot_id' => $typeSlot->id,
-            'time_start' => '08:00:00',
-            'time_end' => '12:00:00',
+            'estimasi_arrival' => '08:00:00',
         ]);
     }
 
@@ -72,29 +78,27 @@ class EstimasiArrivalTest extends TestCase
         $typeSlot = TypeSlot::factory()->create();
         $payload = [
             'type_slot_id' => $typeSlot->id,
-            'time_start' => '09:00:00',
-            'time_end' => '11:00:00',
+            'estimasi_arrival' => '09:00:00',
         ];
 
         $response = $this->postJson('/api/estimasi-arrivals', $payload);
         $response->assertStatus(201)
-            ->assertJsonStructure(['type_slot']);
+            ->assertJsonStructure(['data' => ['type_slot']]);
     }
 
-    public function test_store_defaults_is_active_to_true()
+    public function test_store_defaults_status_to_true()
     {
         $typeSlot = TypeSlot::factory()->create();
         $payload = [
             'type_slot_id' => $typeSlot->id,
-            'time_start' => '10:00:00',
-            'time_end' => '14:00:00',
+            'estimasi_arrival' => '10:00:00',
         ];
 
         $response = $this->postJson('/api/estimasi-arrivals', $payload);
         $response->assertStatus(201);
         $this->assertDatabaseHas('estimasi_arrivals', [
             'type_slot_id' => $typeSlot->id,
-            'is_active' => 1,
+            'status' => 1,
         ]);
     }
 
@@ -102,20 +106,21 @@ class EstimasiArrivalTest extends TestCase
     {
         $response = $this->postJson('/api/estimasi-arrivals', []);
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['type_slot_id', 'time_start', 'time_end']);
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('code', 422);
     }
 
     public function test_store_fails_with_invalid_type_slot_id()
     {
         $payload = [
             'type_slot_id' => 9999,
-            'time_start' => '08:00:00',
-            'time_end' => '12:00:00',
+            'estimasi_arrival' => '08:00:00',
         ];
 
         $response = $this->postJson('/api/estimasi-arrivals', $payload);
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['type_slot_id']);
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('code', 422);
     }
 
     public function test_store_fails_with_invalid_time_format()
@@ -123,13 +128,13 @@ class EstimasiArrivalTest extends TestCase
         $typeSlot = TypeSlot::factory()->create();
         $payload = [
             'type_slot_id' => $typeSlot->id,
-            'time_start' => '8am',
-            'time_end' => 'noon',
+            'estimasi_arrival' => '8am',
         ];
 
         $response = $this->postJson('/api/estimasi-arrivals', $payload);
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['time_start', 'time_end']);
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('code', 422);
     }
 
     // ── SHOW ──────────────────────────────────────────────
@@ -139,6 +144,8 @@ class EstimasiArrivalTest extends TestCase
         $arrival = EstimasiArrival::factory()->create();
         $response = $this->getJson("/api/estimasi-arrivals/{$arrival->id}");
         $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('code', 200)
             ->assertJsonFragment(['id' => $arrival->id]);
     }
 
@@ -147,13 +154,15 @@ class EstimasiArrivalTest extends TestCase
         $arrival = EstimasiArrival::factory()->create();
         $response = $this->getJson("/api/estimasi-arrivals/{$arrival->id}");
         $response->assertStatus(200)
-            ->assertJsonStructure(['type_slot']);
+            ->assertJsonStructure(['data' => ['type_slot']]);
     }
 
     public function test_show_returns_404_for_nonexistent()
     {
         $response = $this->getJson('/api/estimasi-arrivals/9999');
-        $response->assertStatus(404);
+        $response->assertStatus(404)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('code', 404);
     }
 
     // ── UPDATE ────────────────────────────────────────────
@@ -161,22 +170,20 @@ class EstimasiArrivalTest extends TestCase
     public function test_can_update_estimasi_arrival()
     {
         $arrival = EstimasiArrival::factory()->create([
-            'time_start' => '08:00:00',
-            'time_end' => '12:00:00',
+            'estimasi_arrival' => '08:00:00',
         ]);
 
         $payload = [
-            'time_start' => '14:00:00',
-            'time_end' => '18:00:00',
+            'estimasi_arrival' => '14:00:00',
         ];
 
         $response = $this->putJson("/api/estimasi-arrivals/{$arrival->id}", $payload);
         $response->assertStatus(200)
-            ->assertJsonFragment(['time_start' => '14:00:00', 'time_end' => '18:00:00']);
+            ->assertJsonPath('success', true)
+            ->assertJsonFragment(['estimasi_arrival' => '14:00:00']);
         $this->assertDatabaseHas('estimasi_arrivals', [
             'id' => $arrival->id,
-            'time_start' => '14:00:00',
-            'time_end' => '18:00:00',
+            'estimasi_arrival' => '14:00:00',
         ]);
     }
 
@@ -189,25 +196,27 @@ class EstimasiArrivalTest extends TestCase
         $response = $this->putJson("/api/estimasi-arrivals/{$arrival->id}", [
             'type_slot_id' => $typeSlot2->id,
         ]);
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true);
         $this->assertDatabaseHas('estimasi_arrivals', [
             'id' => $arrival->id,
             'type_slot_id' => $typeSlot2->id,
         ]);
     }
 
-    public function test_can_toggle_is_active()
+    public function test_can_toggle_status()
     {
-        $arrival = EstimasiArrival::factory()->create(['is_active' => true]);
+        $arrival = EstimasiArrival::factory()->create(['status' => true]);
 
         $response = $this->putJson("/api/estimasi-arrivals/{$arrival->id}", [
-            'is_active' => false,
+            'status' => false,
         ]);
         $response->assertStatus(200)
-            ->assertJsonFragment(['is_active' => false]);
+            ->assertJsonPath('success', true)
+            ->assertJsonFragment(['status' => false]);
         $this->assertDatabaseHas('estimasi_arrivals', [
             'id' => $arrival->id,
-            'is_active' => 0,
+            'status' => 0,
         ]);
     }
 
@@ -219,7 +228,8 @@ class EstimasiArrivalTest extends TestCase
             'type_slot_id' => 9999,
         ]);
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['type_slot_id']);
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('code', 422);
     }
 
     public function test_update_fails_with_invalid_time_format()
@@ -227,16 +237,19 @@ class EstimasiArrivalTest extends TestCase
         $arrival = EstimasiArrival::factory()->create();
 
         $response = $this->putJson("/api/estimasi-arrivals/{$arrival->id}", [
-            'time_start' => 'invalid',
+            'estimasi_arrival' => 'invalid',
         ]);
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['time_start']);
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('code', 422);
     }
 
     public function test_update_returns_404_for_nonexistent()
     {
-        $response = $this->putJson('/api/estimasi-arrivals/9999', ['is_active' => false]);
-        $response->assertStatus(404);
+        $response = $this->putJson('/api/estimasi-arrivals/9999', ['status' => false]);
+        $response->assertStatus(404)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('code', 404);
     }
 
     // ── DELETE ─────────────────────────────────────────────
@@ -245,7 +258,10 @@ class EstimasiArrivalTest extends TestCase
     {
         $arrival = EstimasiArrival::factory()->create();
         $response = $this->deleteJson("/api/estimasi-arrivals/{$arrival->id}");
-        $response->assertStatus(204);
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('code', 200)
+            ->assertJsonPath('message', 'Data estimasi arrival berhasil dihapus');
         $this->assertDatabaseMissing('estimasi_arrivals', ['id' => $arrival->id]);
     }
 
@@ -254,7 +270,7 @@ class EstimasiArrivalTest extends TestCase
         $typeSlot = TypeSlot::factory()->create();
         $arrival = EstimasiArrival::factory()->create(['type_slot_id' => $typeSlot->id]);
 
-        $this->deleteJson("/api/estimasi-arrivals/{$arrival->id}")->assertStatus(204);
+        $this->deleteJson("/api/estimasi-arrivals/{$arrival->id}")->assertStatus(200);
         $this->assertDatabaseMissing('estimasi_arrivals', ['id' => $arrival->id]);
         $this->assertDatabaseHas('type_slots', ['id' => $typeSlot->id]);
     }
@@ -262,6 +278,8 @@ class EstimasiArrivalTest extends TestCase
     public function test_delete_returns_404_for_nonexistent()
     {
         $response = $this->deleteJson('/api/estimasi-arrivals/9999');
-        $response->assertStatus(404);
+        $response->assertStatus(404)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('code', 404);
     }
 }

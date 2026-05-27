@@ -8,46 +8,31 @@ use App\Models\EstimasiArrival;
 
 class EstimasiArrivalController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        return response()->json(EstimasiArrival::with('typeSlot')->get());
+        return $this->successResponse('Berhasil mengambil data estimasi arrival', EstimasiArrival::with('typeSlot')->get());
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(StoreEstimasiArrivalRequest $request)
     {
         $estimasiArrival = EstimasiArrival::create($request->validated());
-        return response()->json($estimasiArrival->load('typeSlot'), 201);
+        return $this->successResponse('Data estimasi arrival berhasil ditambahkan', $estimasiArrival->load('typeSlot'), 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(EstimasiArrival $estimasiArrival)
     {
-        return response()->json($estimasiArrival->load('typeSlot'));
+        return $this->successResponse('Berhasil mengambil detail estimasi arrival', $estimasiArrival->load('typeSlot'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(UpdateEstimasiArrivalRequest $request, EstimasiArrival $estimasiArrival)
     {
         $estimasiArrival->update($request->validated());
-        return response()->json($estimasiArrival->load('typeSlot'));
+        return $this->successResponse('Data estimasi arrival berhasil diupdate', $estimasiArrival->load('typeSlot'));
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(EstimasiArrival $estimasiArrival)
     {
         $estimasiArrival->delete();
-        return response()->json(null, 204);
+        return $this->successResponse('Data estimasi arrival berhasil dihapus');
     }
 }

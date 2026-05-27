@@ -24,9 +24,8 @@ class StoreEstimasiArrivalRequest extends FormRequest
     {
         return [
             'type_slot_id' => ['required', 'integer', 'exists:type_slots,id'],
-            'time_start' => ['required', 'date_format:H:i:s'],
-            'time_end' => ['required', 'date_format:H:i:s'],
-            'is_active' => ['boolean'],
+            'estimasi_arrival' => ['required', 'date_format:H:i:s'],
+            'status' => ['boolean'],
         ];
     }
 }

@@ -8,47 +8,32 @@ use App\Models\Projection;
 
 class ProjectionController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        return response()->json(Projection::all());
+        return $this->successResponse('Berhasil mengambil data projection', Projection::all());
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(StoreProjectionRequest $request)
     {
         $projection = Projection::create($request->validated());
-        return response()->json($projection, 201);
+        return $this->successResponse('Data projection berhasil ditambahkan', $projection, 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(Projection $projection)
     {
-        return response()->json($projection);
+        return $this->successResponse('Berhasil mengambil detail projection', $projection);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(UpdateProjectionRequest $request, Projection $projection)
     {
         $projection->update($request->validated());
-        return response()->json($projection);
+        return $this->successResponse('Data projection berhasil diupdate', $projection);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Projection $projection)
     {
         $projection->delete();
-        return response()->json(null, 204);
+        return $this->successResponse('Data projection berhasil dihapus');
     }
 
     /**
@@ -77,15 +62,20 @@ class ProjectionController extends Controller
                 ];
             }
             return response()->json([
-                'message' => 'Validation Error', 
-                'errors' => $errors
+                'success' => false,
+                'message' => 'Validation Error',
+                'code' => 422,
+                'data' => $errors,
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Error processing file: ' . $e->getMessage()
+                'success' => false,
+                'message' => 'Error processing file: ' . $e->getMessage(),
+                'code' => 500,
+                'data' => null,
             ], 500);
         }
 
-        return response()->json(['message' => 'File successfully uploaded and processed.'], 201);
+        return $this->successResponse('File successfully uploaded and processed.', null, 201);
     }
 }

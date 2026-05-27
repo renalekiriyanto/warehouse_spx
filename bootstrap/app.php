@@ -15,10 +15,29 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->shouldRenderJsonWhen(function (\Illuminate\Http\Request $request, \Throwable $e) {
+        $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
             if ($request->is('api/*')) {
-                return true;
+                $code = 500;
+                $data = null;
+                $message = $e->getMessage() ?: 'Internal Server Error';
+
+                if ($e instanceof \Illuminate\Validation\ValidationException) {
+                    $code = 422;
+                    $message = 'The given data was invalid.';
+                    $data = $e->errors();
+                } elseif ($e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
+                    $code = 404;
+                    $message = 'Data not found.';
+                } elseif ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
+                    $code = $e->getStatusCode();
+                }
+
+                return response()->json([
+                    'success' => false,
+                    'message' => $message,
+                    'code' => $code,
+                    'data' => $data,
+                ], $code);
             }
-            return $request->expectsJson();
         });
     })->create();

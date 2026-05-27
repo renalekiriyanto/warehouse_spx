@@ -22,9 +22,8 @@ class EstimasiArrivalFactory extends Factory
 
         return [
             'type_slot_id' => TypeSlot::factory(),
-            'time_start' => sprintf('%02d:00:00', $hour),
-            'time_end' => sprintf('%02d:00:00', $hour + 3),
-            'is_active' => true,
+            'estimasi_arrival' => sprintf('%02d:00:00', $hour),
+            'status' => true,
         ];
     }
 }
