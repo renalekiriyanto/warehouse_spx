@@ -3,6 +3,7 @@
 namespace App\Imports;
 
 use App\Models\Inbound;
+use App\Models\TypeSlot;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
@@ -12,12 +13,25 @@ class InboundImport implements ToModel, WithHeadingRow, WithValidation
     /**
      * @param  array<string, mixed>  $row
      */
-    public function model(array $row): Inbound
+    public function model(array $row): ?Inbound
     {
+        // Cari TypeSlot berdasarkan nama yang contain dengan value type_slot dari file
+        $typeSlotName = $row['type_slot'] ?? null;
+        $typeSlot = null;
+
+        if ($typeSlotName) {
+            $typeSlot = TypeSlot::where('name', 'like', '%' . $typeSlotName . '%')->first();
+        }
+
+        // Jika type_slot tidak ditemukan, skip baris ini (return null)
+        if (! $typeSlot) {
+            return null;
+        }
+
         return new Inbound([
+            'id_type_slot' => $typeSlot->id,
             'date_inbound' => $row['date_inbound'] ?? $row['inbound_date'] ?? now()->toDateString(),
             'actual_arrival' => $row['actual_arrival'] ?? null,
-            'bulky' => $row['bulky'],
             'total_order' => $row['total_order'],
         ]);
     }
@@ -65,10 +79,10 @@ class InboundImport implements ToModel, WithHeadingRow, WithValidation
     public function rules(): array
     {
         return [
+            'type_slot' => ['required', 'string'],
             'date_inbound' => ['nullable', 'date'],
             'inbound_date' => ['nullable', 'date'],
             'actual_arrival' => ['nullable', 'date_format:H:i:s'],
-            'bulky' => ['required', 'integer', 'min:0'],
             'total_order' => ['required', 'integer', 'min:0'],
         ];
     }

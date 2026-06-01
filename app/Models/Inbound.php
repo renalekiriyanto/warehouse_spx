@@ -11,9 +11,9 @@ class Inbound extends Model
     use HasFactory;
 
     protected $fillable = [
+        'id_type_slot',
         'date_inbound',
         'actual_arrival',
-        'bulky',
         'total_order',
     ];
 

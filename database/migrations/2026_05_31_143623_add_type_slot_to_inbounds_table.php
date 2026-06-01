@@ -11,11 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('inbounds', function (Blueprint $table) {
-            $table->id();
-            $table->time('actual_arrival')->nullable();
-            $table->integer('total_order')->default(0);
-            $table->timestamps();
+        Schema::table('inbounds', function (Blueprint $table) {
+            $table->integer('id_type_slot');
         });
     }
 
@@ -24,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('inbounds');
+        Schema::table('inbounds', function (Blueprint $table) {
+            //
+        });
     }
 };
