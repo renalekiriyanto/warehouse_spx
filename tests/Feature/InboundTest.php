@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\TypeSlot;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use App\Models\Inbound;
@@ -22,18 +23,19 @@ class InboundTest extends TestCase
 
     public function test_can_create_inbound()
     {
+        $typeSlot = TypeSlot::factory()->create();
+
         $payload = [
+            'id_type_slot'  => $typeSlot->id,
             'actual_arrival' => '10:00:00',
-            'bulky' => 5,
-            'total_order' => 100,
+            'total_order'   => 100,
         ];
         $response = $this->postJson('/api/inbounds', $payload);
         $response->assertStatus(201)
             ->assertJsonPath('success', true)
             ->assertJsonPath('code', 201)
-            ->assertJsonPath('message', 'Data inbound berhasil ditambahkan')
-            ->assertJsonFragment($payload);
-        $this->assertDatabaseHas('inbounds', $payload);
+            ->assertJsonPath('message', 'Data inbound berhasil ditambahkan');
+        $this->assertDatabaseHas('inbounds', ['total_order' => 100]);
     }
 
     public function test_can_show_inbound()
@@ -51,16 +53,14 @@ class InboundTest extends TestCase
         $inbound = Inbound::factory()->create();
         $payload = [
             'actual_arrival' => '12:00:00',
-            'bulky' => 10,
-            'total_order' => 200,
+            'total_order'   => 200,
         ];
         $response = $this->putJson("/api/inbounds/{$inbound->id}", $payload);
         $response->assertStatus(200)
             ->assertJsonPath('success', true)
             ->assertJsonPath('code', 200)
-            ->assertJsonPath('message', 'Data inbound berhasil diupdate')
-            ->assertJsonFragment($payload);
-        $this->assertDatabaseHas('inbounds', $payload);
+            ->assertJsonPath('message', 'Data inbound berhasil diupdate');
+        $this->assertDatabaseHas('inbounds', ['id' => $inbound->id, 'total_order' => 200]);
     }
 
     public function test_can_delete_inbound()

@@ -18,10 +18,10 @@ class InboundFactory extends Factory
     public function definition(): array
     {
         return [
-            'date_inbound' => fake()->date(),
+            'id_type_slot'  => \App\Models\TypeSlot::factory(),
+            'date_inbound'  => fake()->date(),
             'actual_arrival' => fake()->time('H:i:s'),
-            'bulky' => fake()->numberBetween(0, 100),
-            'total_order' => fake()->numberBetween(10, 1000),
+            'total_order'   => fake()->numberBetween(10, 1000),
         ];
     }
 }

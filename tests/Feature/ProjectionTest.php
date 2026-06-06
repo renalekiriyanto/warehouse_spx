@@ -16,7 +16,7 @@ class ProjectionTest extends TestCase
     {
         Projection::factory(3)->create();
         $response = $this->getJson('/api/projections');
-        $response->assertStatus(200)->assertJsonCount(3);
+        $response->assertStatus(200)->assertJsonCount(3, 'data');
     }
 
     public function test_can_create_projection()
@@ -50,7 +50,7 @@ class ProjectionTest extends TestCase
     {
         $projection = Projection::factory()->create();
         $response = $this->deleteJson("/api/projections/{$projection->id}");
-        $response->assertStatus(204);
+        $response->assertStatus(200);
         $this->assertDatabaseMissing('projections', ['id' => $projection->id]);
     }
 }

@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateInboundRequest extends FormRequest
+class UpdateStdSomedayRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -23,9 +23,10 @@ class UpdateInboundRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'date_inbound' => ['sometimes', 'nullable', 'date'],
-            'actual_arrival' => ['sometimes', 'nullable', 'date_format:H:i:s'],
-            'total_order' => ['sometimes', 'required', 'integer', 'min:0'],
+            'date_time' => ['sometimes', 'required', 'date'],
+            'awb' => ['sometimes', 'required', 'string', 'max:255'],
+            'id_driver' => ['sometimes', 'nullable', 'integer', 'exists:drivers,id'],
+            'status' => ['sometimes', 'required', 'in:LMHub_Received,LMHub_Assigned,LMHub_Assigning,Return_LMHub_Packed,Return_LMHub_Received,Delivering,OnHold,Delivered'],
         ];
     }
 }

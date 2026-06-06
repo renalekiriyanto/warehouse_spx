@@ -15,7 +15,6 @@ class SocialiteAuthTest extends TestCase
 
     public function test_redirect_returns_url()
     {
-        // Mock Socialite redirect
         $providerMock = Mockery::mock('Laravel\Socialite\Contracts\Provider');
         $providerMock->shouldReceive('stateless')->andReturnSelf();
         $providerMock->shouldReceive('redirect->getTargetUrl')->andReturn('https://provider.com/auth');
@@ -27,7 +26,8 @@ class SocialiteAuthTest extends TestCase
         $response = $this->getJson('/api/auth/google/redirect');
 
         $response->assertStatus(200)
-                 ->assertJson(['url' => 'https://provider.com/auth']);
+                 ->assertJsonPath('success', true)
+                 ->assertJsonPath('data.url', 'https://provider.com/auth');
     }
 
     public function test_callback_creates_user_and_returns_token()
@@ -49,12 +49,15 @@ class SocialiteAuthTest extends TestCase
         $response = $this->getJson('/api/auth/google/callback');
 
         $response->assertStatus(200)
+                 ->assertJsonPath('success', true)
+                 ->assertJsonPath('data.user.email', 'test@example.com')
                  ->assertJsonStructure([
-                     'message',
-                     'user' => [
-                         'id', 'name', 'email', 'provider_name', 'provider_id'
+                     'success', 'message', 'code',
+                     'data' => [
+                         'provider',
+                         'user' => ['id', 'name', 'email'],
+                         'token',
                      ],
-                     'token'
                  ]);
 
         $this->assertDatabaseHas('users', [

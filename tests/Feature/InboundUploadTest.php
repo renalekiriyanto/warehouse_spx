@@ -2,10 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Imports\InboundImport;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Maatwebsite\Excel\Facades\Excel;
 use Tests\TestCase;
 
 class InboundUploadTest extends TestCase
@@ -14,21 +12,19 @@ class InboundUploadTest extends TestCase
 
     public function test_can_upload_inbounds_csv(): void
     {
-        Excel::fake();
-
-        $file = UploadedFile::fake()->create('inbounds.csv', 10, 'text/csv');
+        $file = UploadedFile::fake()->createWithContent(
+            'inbounds.csv',
+            "type_slot,date_inbound,actual_arrival,total_order\n"
+        );
 
         $response = $this->postJson('/api/inbounds/upload', [
             'file' => $file,
         ]);
 
-        $response->assertStatus(201)
+        // Upload kini async → 202 Accepted, bukan 201
+        $response->assertStatus(202)
             ->assertJsonPath('success', true)
-            ->assertJsonPath('message', 'File inbound berhasil diunggah dan diproses.');
-
-        Excel::assertImported('inbounds.csv', function (InboundImport $import) {
-            return true;
-        });
+            ->assertJsonPath('data.status', 'completed'); // file kosong langsung completed
     }
 
     public function test_upload_rejects_invalid_file_type(): void

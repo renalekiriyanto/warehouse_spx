@@ -5,9 +5,14 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreProjectionRequest;
 use App\Http\Requests\UpdateProjectionRequest;
 use App\Models\Projection;
+use App\Services\ImportDispatcherService;
+use Illuminate\Http\Request;
 
 class ProjectionController extends Controller
 {
+    public function __construct(
+        private readonly ImportDispatcherService $importDispatcher,
+    ) {}
     public function index()
     {
         return $this->successResponse('Berhasil mengambil data projection', Projection::all());
@@ -37,37 +42,27 @@ class ProjectionController extends Controller
     }
 
     /**
-     * Upload and import Projection data from CSV/Excel.
+     * Upload and import Projection data from CSV/Excel (async, queue-based).
      */
-    public function upload(\Illuminate\Http\Request $request)
+    public function upload(Request $request)
     {
         $request->validate([
-            'file' => 'required|mimes:csv,xlsx,xls|max:10240', // 10MB max
+            'file' => 'required|mimes:csv,xlsx,xls|max:51200',
         ]);
 
         try {
-            \Maatwebsite\Excel\Facades\Excel::import(
-                new \App\Imports\ProjectionImport, 
-                $request->file('file')
-            );
-        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
-            $failures = $e->failures();
-            $errors = [];
-            foreach ($failures as $failure) {
-                $errors[] = [
-                    'row' => $failure->row(),
-                    'attribute' => $failure->attribute(),
-                    'errors' => $failure->errors(),
-                    'values' => $failure->values(),
-                ];
-            }
-            return $this->errorResponse('Validasi file gagal. Periksa format data pada baris yang dilaporkan.', $errors, 422);
+            $batch = $this->importDispatcher->dispatch($request->file('file'), 'projection');
         } catch (\Exception $e) {
             return $this->errorResponse('Gagal memproses file upload projection.', [
                 'error' => $e->getMessage(),
             ], 500);
         }
 
-        return $this->successResponse('File projection berhasil diunggah dan diproses.', null, 201);
+        return $this->successResponse('File projection berhasil diunggah dan sedang diproses.', [
+            'uuid'         => $batch->uuid,
+            'status'       => $batch->status,
+            'status_label' => $batch->status_label,
+            'total_rows'   => $batch->total_rows,
+        ], 202);
     }
 }

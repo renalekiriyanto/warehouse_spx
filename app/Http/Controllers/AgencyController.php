@@ -16,12 +16,9 @@ class AgencyController extends Controller
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Show the form for creating a new resource — not used in API context.
      */
-    public function create()
-    {
-        //
-    }
+    public function create(): void {}
 
     /**
      * Store a newly created resource in storage.
@@ -47,12 +44,9 @@ class AgencyController extends Controller
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Show the form for editing — not used in API context.
      */
-    public function edit(string $id)
-    {
-        //
-    }
+    public function edit(string $id): void {}
 
     /**
      * Update the specified resource in storage.

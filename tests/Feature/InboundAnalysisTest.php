@@ -46,11 +46,13 @@ class InboundAnalysisTest extends TestCase
 
     public function test_cycle_context_marks_inbound_inside_cutoff_and_group(): void
     {
+        $slot1 = TypeSlot::where('slug', 'slot-1')->first();
+
         $inbound = Inbound::create([
-            'date_inbound' => $this->date,
+            'id_type_slot'  => $slot1->id,
+            'date_inbound'  => $this->date,
             'actual_arrival' => '09:30:00',
-            'bulky' => 2,
-            'total_order' => 50,
+            'total_order'   => 50,
         ]);
 
         $response = $this->getJson("/api/inbounds/{$inbound->id}/cycle");
@@ -66,10 +68,9 @@ class InboundAnalysisTest extends TestCase
     public function test_cycle_context_marks_outside_cutoff_when_time_not_in_range(): void
     {
         $inbound = Inbound::create([
-            'date_inbound' => $this->date,
+            'date_inbound'  => $this->date,
             'actual_arrival' => '23:00:00',
-            'bulky' => 1,
-            'total_order' => 10,
+            'total_order'   => 10,
         ]);
 
         $response = $this->getJson("/api/inbounds/{$inbound->id}/cycle");
@@ -87,22 +88,19 @@ class InboundAnalysisTest extends TestCase
         ]);
 
         Inbound::create([
-            'date_inbound' => $this->date,
+            'date_inbound'  => $this->date,
             'actual_arrival' => '08:30:00',
-            'bulky' => 1,
-            'total_order' => 100,
+            'total_order'   => 100,
         ]);
         Inbound::create([
-            'date_inbound' => $this->date,
+            'date_inbound'  => $this->date,
             'actual_arrival' => '12:30:00',
-            'bulky' => 1,
-            'total_order' => 120,
+            'total_order'   => 120,
         ]);
         Inbound::create([
-            'date_inbound' => $this->date,
+            'date_inbound'  => $this->date,
             'actual_arrival' => '16:30:00',
-            'bulky' => 1,
-            'total_order' => 90,
+            'total_order'   => 90,
         ]);
 
         $response = $this->getJson('/api/inbounds/analysis/daily?date='.$this->date);

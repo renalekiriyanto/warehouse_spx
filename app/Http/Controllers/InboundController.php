@@ -6,12 +6,14 @@ use App\Http\Requests\InboundDailyAnalysisRequest;
 use App\Http\Requests\StoreInboundRequest;
 use App\Http\Requests\UpdateInboundRequest;
 use App\Models\Inbound;
+use App\Services\ImportDispatcherService;
 use App\Services\InboundAnalysisService;
 
 class InboundController extends Controller
 {
     public function __construct(
         private readonly InboundAnalysisService $inboundAnalysisService,
+        private readonly ImportDispatcherService $importDispatcher,
     ) {}
 
     public function index()
@@ -67,37 +69,27 @@ class InboundController extends Controller
     }
 
     /**
-     * Upload and import Inbound data from CSV/Excel.
+     * Upload and import Inbound data from CSV/Excel (async, queue-based).
      */
     public function upload(\Illuminate\Http\Request $request)
     {
         $request->validate([
-            'file' => 'required|mimes:csv,xlsx,xls|max:10240',
+            'file' => 'required|mimes:csv,xlsx,xls|max:51200', // 50 MB
         ]);
 
         try {
-            \Maatwebsite\Excel\Facades\Excel::import(
-                new \App\Imports\InboundImport,
-                $request->file('file')
-            );
-        } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
-            $errors = [];
-            foreach ($e->failures() as $failure) {
-                $errors[] = [
-                    'row' => $failure->row(),
-                    'attribute' => $failure->attribute(),
-                    'errors' => $failure->errors(),
-                    'values' => $failure->values(),
-                ];
-            }
-
-            return $this->errorResponse('Validasi file gagal. Periksa format data pada baris yang dilaporkan.', $errors, 422);
+            $batch = $this->importDispatcher->dispatch($request->file('file'), 'inbound');
         } catch (\Exception $e) {
             return $this->errorResponse('Gagal memproses file upload inbound.', [
                 'error' => $e->getMessage(),
             ], 500);
         }
 
-        return $this->successResponse('File inbound berhasil diunggah dan diproses.', null, 201);
+        return $this->successResponse('File inbound berhasil diunggah dan sedang diproses.', [
+            'uuid'         => $batch->uuid,
+            'status'       => $batch->status,
+            'status_label' => $batch->status_label,
+            'total_rows'   => $batch->total_rows,
+        ], 202);
     }
 }

@@ -2,50 +2,48 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Maatwebsite\Excel\Facades\Excel;
 use Tests\TestCase;
-use App\Imports\ProjectionImport;
 
 class ProjectionUploadTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_user_can_upload_projections_csv()
+    public function test_can_upload_projections_csv(): void
     {
-        $user = User::factory()->create();
+        $file = UploadedFile::fake()->createWithContent(
+            'projections.csv',
+            "inbound_date,projected_lm_inbound\n"
+        );
 
-        Excel::fake();
-
-        // Create a fake CSV file
-        $file = UploadedFile::fake()->create('projections.csv', 10, 'text/csv');
-
-        $response = $this->actingAs($user, 'sanctum')->postJson('/api/projections/upload', [
+        $response = $this->postJson('/api/projections/upload', [
             'file' => $file,
         ]);
 
-        $response->assertStatus(201);
-        $response->assertJson(['message' => 'File successfully uploaded and processed.']);
-
-        Excel::assertImported('projections.csv', function (ProjectionImport $import) {
-            return true;
-        });
+        // Upload kini async → 202 Accepted
+        $response->assertStatus(202)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.status', 'completed'); // file kosong langsung completed
     }
 
-    public function test_user_cannot_upload_invalid_file_type()
+    public function test_upload_rejects_invalid_file_type(): void
     {
-        $user = User::factory()->create();
-
-        // Create a fake PDF file
         $file = UploadedFile::fake()->create('projections.pdf', 10, 'application/pdf');
 
-        $response = $this->actingAs($user, 'sanctum')->postJson('/api/projections/upload', [
+        $response = $this->postJson('/api/projections/upload', [
             'file' => $file,
         ]);
 
-        $response->assertStatus(422);
-        $response->assertJsonValidationErrors(['file']);
+        $response->assertStatus(422)
+            ->assertJsonPath('success', false);
+    }
+
+    public function test_upload_requires_file(): void
+    {
+        $response = $this->postJson('/api/projections/upload', []);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('success', false);
     }
 }

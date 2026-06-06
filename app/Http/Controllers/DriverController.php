@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use App\Services\ImportDispatcherService;
 
 class DriverController extends Controller
 {
@@ -17,12 +17,9 @@ class DriverController extends Controller
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Show the form for creating a new resource — not used in API context.
      */
-    public function create()
-    {
-        //
-    }
+    public function create(): void {}
 
     /**
      * Store a newly created resource in storage.
@@ -50,12 +47,9 @@ class DriverController extends Controller
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Show the form for editing — not used in API context.
      */
-    public function edit(string $id)
-    {
-        //
-    }
+    public function edit(string $id): void {}
 
     /**
      * Update the specified resource in storage.
@@ -86,38 +80,24 @@ class DriverController extends Controller
 
     public function importData(Request $request)
     {
-        $file = $request->file('file');
-        $path = $file->getRealPath();
-        $data = array_map('str_getcsv', file($path));
+        $request->validate([
+            'file' => 'required|mimes:csv|max:51200',
+        ]);
 
-        foreach ($data as $index => $value) {
-            if($index === 0) continue; // Skip header row
-            // Finding id vehicle type by slug
-            $vehicleType = \App\Models\VehicleType::where('slug', $value[2])->first();
-            $value[2] = $vehicleType ? $vehicleType->id : null;
-            // Finding id agency by slug
-            $agency = \App\Models\Agency::where('name', $value[4])->first();
-            if(!$agency) {
-                $agency = \App\Models\Agency::create([
-                    'name' => $value[4],
-                    'slug' => Str::slug($value[4]),
-                ]);
-            }
-
-            $status = strtolower($value[5]) ?? 'active';
-            $driverData = [
-                'id_driver' => $value[0],
-                'name' => $value[1],
-                'id_vehicle_type' => $value[2],
-                'id_agency' => $agency ? $agency->id : null,
-                'contract_type' => $value[3] ?? null,
-                'status' => $status,
-            ];
-            \App\Models\Driver::updateOrCreate(
-                $driverData
-            );
+        try {
+            $dispatcher = app(ImportDispatcherService::class);
+            $batch = $dispatcher->dispatch($request->file('file'), 'driver');
+        } catch (\Exception $e) {
+            return $this->errorResponse('Gagal memproses file import driver.', [
+                'error' => $e->getMessage(),
+            ], 500);
         }
 
-        return $this->successResponse('Data driver berhasil diimpor', null);
+        return $this->successResponse('File driver berhasil diunggah dan sedang diproses.', [
+            'uuid'         => $batch->uuid,
+            'status'       => $batch->status,
+            'status_label' => $batch->status_label,
+            'total_rows'   => $batch->total_rows,
+        ], 202);
     }
 }
