@@ -25,6 +25,6 @@ class StdSomeday extends Model
 
     public function driver()
     {
-        return $this->belongsTo(Driver::class, 'id_driver');
+        return $this->belongsTo(Driver::class, 'id_driver', 'id');
     }
 }

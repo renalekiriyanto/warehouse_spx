@@ -36,6 +36,7 @@ Route::apiResource('agencies', AgencyController::class);
 Route::apiResource('drivers', DriverController::class);
 Route::post('drivers/upload', [DriverController::class, 'importData']);
 Route::post('std-somedays/upload', [StdSomedayController::class, 'upload']);
+Route::post('std-somedays/reminder-courier', [StdSomedayController::class, 'reminderCourier']);
 Route::apiResource('std-somedays', StdSomedayController::class);
 
 Route::get('/auth/{provider}/redirect', [SocialiteController::class, 'redirect']);

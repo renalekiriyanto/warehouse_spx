@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateStdSomedayRequest;
 use App\Models\StdSomeday;
 use App\Services\ImportDispatcherService;
 use Illuminate\Http\Request;
+use App\Services\ReminderCourierService;
 
 class StdSomedayController extends Controller
 {
@@ -80,5 +81,15 @@ class StdSomedayController extends Controller
             'status_label' => $batch->status_label,
             'total_rows'   => $batch->total_rows,
         ], 202);
+    }
+
+    public function reminderCourier(Request $request, ReminderCourierService $reminderCourierService)
+    {
+        // Always getting current date data STD Someday
+        $data = $reminderCourierService->getLatestStdSomeday();
+        return $this->successResponse(
+            'Data STD Someday Reminder Courier berhasil diambil',
+            $data
+        );
     }
 }
