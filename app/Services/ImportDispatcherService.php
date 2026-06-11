@@ -24,6 +24,13 @@ class ImportDispatcherService
     private const CHUNK_SIZE = 1000;
 
     /**
+     * Format CSV yang didukung untuk std_someday.
+     */
+    private const FORMAT_LEGACY = 'legacy';
+    private const FORMAT_SHOPEE = 'shopee';
+    private const TIMEZONE = 'Asia/Jakarta';
+
+    /**
      * Entry point: simpan file, baca baris, buat ImportBatch, dispatch jobs.
      *
      * @param  UploadedFile  $file
@@ -33,8 +40,8 @@ class ImportDispatcherService
     public function dispatch(UploadedFile $file, string $type): ImportBatch
     {
         // 1. Simpan file ke storage/app/imports/<uuid>.<ext>
-        $uuid      = Str::uuid()->toString();
-        $ext       = strtolower($file->getClientOriginalExtension());
+        $uuid       = Str::uuid()->toString();
+        $ext        = strtolower($file->getClientOriginalExtension());
         $storedPath = "imports/{$uuid}.{$ext}";
         Storage::put($storedPath, file_get_contents($file->getRealPath()));
 
@@ -47,10 +54,15 @@ class ImportDispatcherService
             'status'            => 'uploading',
         ]);
 
-        // 3. Baca semua baris dari file
+        // 3. Ambil timestamp server saat upload — digunakan sebagai date_time
+        //    untuk seluruh record dalam batch Shopee Direct CSV.
+        //    Semua row dalam satu file akan memiliki date_time yang sama.
+        $uploadTimestamp = now()->format('Y-m-d H:i:s');
+
+        // 4. Baca semua baris dari file
         $allRows = match ($ext) {
-            'csv'         => $this->readCsv($file->getRealPath(), $type),
-            'xlsx', 'xls' => $this->readExcel(Storage::path($storedPath), $type),
+            'csv'         => $this->readCsv($file->getRealPath(), $type, $uploadTimestamp),
+            'xlsx', 'xls' => $this->readExcel(Storage::path($storedPath), $type, $uploadTimestamp),
             default       => [],
         };
 
@@ -68,7 +80,7 @@ class ImportDispatcherService
             return $importBatch;
         }
 
-        // 4. Buat jobs untuk setiap chunk
+        // 5. Buat jobs untuk setiap chunk
         $chunks = array_chunk($allRows, self::CHUNK_SIZE);
         $jobs   = [];
 
@@ -76,7 +88,7 @@ class ImportDispatcherService
             $jobs[] = $this->makeJob($type, $importBatch->id, $chunk);
         }
 
-        // 5. Dispatch sebagai Laravel Bus Batch
+        // 6. Dispatch sebagai Laravel Bus Batch
         $batch = Bus::batch($jobs)
             ->name("import:{$type}:{$uuid}")
             ->allowFailures()
@@ -104,27 +116,34 @@ class ImportDispatcherService
 
     // ── File readers ────────────────────────────────────────────────────────
 
-    private function readCsv(string $path, string $type): array
+    private function readCsv(string $path, string $type, ?string $uploadTimestamp = null): array
     {
         $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
         if (empty($lines)) {
             return [];
         }
 
-        $header = str_getcsv(array_shift($lines));
-        $header = array_map(fn ($h) => $this->toSnakeCase(trim($h)), $header);
+        // ✅ Strip UTF-8 BOM jika ada (penyebab header tidak terbaca)
+        $lines[0] = preg_replace('/^\xEF\xBB\xBF/', '', $lines[0]);
+
+        $rawHeader = str_getcsv(array_shift($lines));
+        $format    = $type === 'std_someday'
+            ? $this->detectStdSomedayFormat($rawHeader)
+            : self::FORMAT_LEGACY;
+
+        $header = array_map(fn($h) => $this->toSnakeCase(trim($h)), $rawHeader);
 
         $rows = [];
         foreach ($lines as $line) {
             $values = str_getcsv($line);
             $row    = array_combine($header, array_pad($values, count($header), null));
-            $rows[] = $this->normalizeRow($row, $type);
+            $rows[] = $this->normalizeRow($row, $type, $format, $uploadTimestamp);
         }
 
         return $rows;
     }
 
-    private function readExcel(string $path, string $type): array
+    private function readExcel(string $path, string $type, ?string $uploadTimestamp = null): array
     {
         $spreadsheet = IOFactory::load($path);
         $sheet       = $spreadsheet->getActiveSheet();
@@ -138,7 +157,12 @@ class ImportDispatcherService
         }
 
         // Baris pertama sebagai header
-        $header = array_map(fn ($h) => $this->toSnakeCase((string) ($h ?? '')), array_shift($sheetData));
+        $rawHeader = array_shift($sheetData);
+        $format    = $type === 'std_someday'
+            ? $this->detectStdSomedayFormat($rawHeader)
+            : self::FORMAT_LEGACY;
+
+        $header = array_map(fn($h) => $this->toSnakeCase((string) ($h ?? '')), $rawHeader);
 
         $rows = [];
         foreach ($sheetData as $rowValues) {
@@ -146,10 +170,40 @@ class ImportDispatcherService
                 continue;
             }
             $row    = array_combine($header, array_pad($rowValues, count($header), null));
-            $rows[] = $this->normalizeRow($row, $type);
+            $rows[] = $this->normalizeRow($row, $type, $format, $uploadTimestamp);
         }
 
         return $rows;
+    }
+
+    // ── Format detection ────────────────────────────────────────────────────
+
+    /**
+     * Deteksi format CSV std_someday berdasarkan header.
+     *
+     * Shopee Direct CSV  → mengandung kolom "Order ID" atau "order_id"
+     * Legacy STD CSV     → mengandung kolom "AWB" atau "awb"
+     *
+     * Jika tidak ada penanda yang dikenali, fallback ke legacy.
+     */
+    private function detectStdSomedayFormat(array $rawHeader): string
+    {
+        $normalized = array_map(fn($h) => strtolower(trim((string) $h)), $rawHeader);
+
+        foreach ($normalized as $col) {
+            if (in_array($col, ['order id', 'order_id'], true)) {
+                return self::FORMAT_SHOPEE;
+            }
+        }
+
+        foreach ($normalized as $col) {
+            if ($col === 'awb') {
+                return self::FORMAT_LEGACY;
+            }
+        }
+
+        // Fallback: tidak ada penanda yang dikenali → anggap legacy
+        return self::FORMAT_LEGACY;
     }
 
     // ── Row normalizers ─────────────────────────────────────────────────────
@@ -157,12 +211,18 @@ class ImportDispatcherService
     /**
      * Normalisasi tipe-spesifik untuk setiap row.
      */
-    private function normalizeRow(array $row, string $type): array
-    {
+    private function normalizeRow(
+        array $row,
+        string $type,
+        string $format = self::FORMAT_LEGACY,
+        ?string $uploadTimestamp = null
+    ): array {
         return match ($type) {
             'inbound'     => $this->normalizeInboundRow($row),
             'projection'  => $this->normalizeProjectionRow($row),
-            'std_someday' => $this->normalizeStdSomedayRow($row),
+            'std_someday' => $format === self::FORMAT_SHOPEE
+                ? $this->normalizeShopeeRow($row, $uploadTimestamp)
+                : $this->normalizeStdSomedayRow($row),
             'driver'      => $row,   // Driver CSV sudah indexed, tetap dikembalikan apa adanya
             default       => $row,
         };
@@ -174,7 +234,8 @@ class ImportDispatcherService
             if (isset($row[$field]) && is_numeric($row[$field])) {
                 try {
                     $row[$field] = ExcelDate::excelToDateTimeObject($row[$field])->format('Y-m-d');
-                } catch (\Exception) {}
+                } catch (\Exception) {
+                }
             }
         }
 
@@ -185,7 +246,8 @@ class ImportDispatcherService
         if (isset($row['actual_arrival']) && is_numeric($row['actual_arrival'])) {
             try {
                 $row['actual_arrival'] = ExcelDate::excelToDateTimeObject($row['actual_arrival'])->format('H:i:s');
-            } catch (\Exception) {}
+            } catch (\Exception) {
+            }
         }
 
         if (isset($row['actual_arrival']) && $row['actual_arrival'] === '') {
@@ -201,13 +263,19 @@ class ImportDispatcherService
             if (isset($row[$field]) && is_numeric($row[$field])) {
                 try {
                     $row[$field] = ExcelDate::excelToDateTimeObject($row[$field])->format('Y-m-d');
-                } catch (\Exception) {}
+                } catch (\Exception) {
+                }
             }
         }
 
         return $row;
     }
 
+    /**
+     * MODE 1 — Legacy STD CSV (tidak diubah sama sekali).
+     *
+     * Format: Date | Time | AWB | ID Driver | Driver Name | Status
+     */
     private function normalizeStdSomedayRow(array $row): array
     {
         // Konversi date
@@ -216,7 +284,8 @@ class ImportDispatcherService
             if (is_numeric($row['date'])) {
                 try {
                     $datePart = ExcelDate::excelToDateTimeObject($row['date'])->format('Y-m-d');
-                } catch (\Exception) {}
+                } catch (\Exception) {
+                }
             } else {
                 $ts = strtotime($row['date']);
                 $datePart = $ts !== false ? date('Y-m-d', $ts) : $row['date'];
@@ -229,7 +298,8 @@ class ImportDispatcherService
             if (is_numeric($row['time'])) {
                 try {
                     $timePart = ExcelDate::excelToDateTimeObject($row['time'])->format('H:i:s');
-                } catch (\Exception) {}
+                } catch (\Exception) {
+                }
             } else {
                 $timeStr = trim((string) $row['time']);
                 if (preg_match('/^\s*(\d+):/', $timeStr, $m) && (int) $m[1] > 12) {
@@ -247,7 +317,8 @@ class ImportDispatcherService
         } elseif (isset($row['date_time']) && is_numeric($row['date_time'])) {
             try {
                 $row['date_time'] = ExcelDate::excelToDateTimeObject($row['date_time'])->format('Y-m-d H:i:s');
-            } catch (\Exception) {}
+            } catch (\Exception) {
+            }
         }
 
         if (isset($row['id_driver']) && $row['id_driver'] === '') {
@@ -261,9 +332,58 @@ class ImportDispatcherService
         return $row;
     }
 
+    /**
+     * MODE 2 — Shopee Direct CSV.
+     *
+     * Mapping kolom Shopee → kolom StdSomeday:
+     *   order_id  → awb
+     *   driver_id → id_driver
+     *   status    → status
+     *   date_time → $uploadTimestamp (timestamp server saat upload, BUKAN dari Shopee)
+     *
+     * Kolom Shopee lain (received_time, delivering_time, delivered_time,
+     * on_hold_time, dll) sengaja diabaikan karena STD/Someday adalah
+     * snapshot kondisi courier saat upload, bukan histori status paket.
+     */
+    private function normalizeShopeeRow(array $row, ?string $uploadTimestamp): array
+{
+    // ✅ DEBUG LOG — hapus setelah confirmed working
+    \Illuminate\Support\Facades\Log::info('SHOPEE ROW MAPPING', [
+        'raw_keys'   => array_keys($row),
+        'order_id'   => $row['order_id'] ?? 'KEY_NOT_FOUND',
+        'driver_id'  => $row['driver_id'] ?? 'KEY_NOT_FOUND',
+        'status'     => $row['status'] ?? 'KEY_NOT_FOUND',
+        'timestamp'  => $uploadTimestamp,
+    ]);
+
+    $awb = isset($row['order_id']) ? trim((string) $row['order_id']) : null;
+    if ($awb === '') {
+        $awb = null;
+    }
+
+        $idDriver = isset($row['driver_id']) ? trim((string) $row['driver_id']) : null;
+        if ($idDriver === '') {
+            $idDriver = null;
+        }
+
+        $status = isset($row['status']) ? trim((string) $row['status']) : 'LMHub_Received';
+        if ($status === '') {
+            $status = 'LMHub_Received';
+        }
+
+        return [
+            'awb'       => $awb,
+            'id_driver' => $idDriver,
+            'status'    => $status,
+            // Seluruh row dalam satu batch menggunakan timestamp yang sama
+            // yaitu waktu server saat file diupload.
+            'date_time' => now(self::TIMEZONE)->format('Y-m-d H:i:s')
+        ];
+    }
+
     // ── Helpers ─────────────────────────────────────────────────────────────
 
-    private function makeJob(string $type, int $importBatchId, array $chunk): \Illuminate\Contracts\Queue\ShouldQueue
+    private function makeJob(string $type, int $importBatchId, array $chunk): ShouldQueue
     {
         return match ($type) {
             'inbound'     => new ProcessInboundChunk($importBatchId, $chunk),
@@ -276,7 +396,7 @@ class ImportDispatcherService
 
     private function isEmptyRow(array $row): bool
     {
-        return collect($row)->every(fn ($v) => $v === null || trim((string) $v) === '');
+        return collect($row)->every(fn($v) => $v === null || trim((string) $v) === '');
     }
 
     private function toSnakeCase(string $str): string

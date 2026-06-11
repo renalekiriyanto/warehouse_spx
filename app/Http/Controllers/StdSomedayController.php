@@ -8,17 +8,22 @@ use App\Models\StdSomeday;
 use App\Services\ImportDispatcherService;
 use Illuminate\Http\Request;
 use App\Services\ReminderCourierService;
+use App\Services\StdSomedayService;
 
 class StdSomedayController extends Controller
 {
     public function __construct(
         private readonly ImportDispatcherService $importDispatcher,
     ) {}
-    public function index()
+    public function index(Request $request)
     {
+        $startDate = $request->query('start');
+        $endDate = $request->query('end');
+        $stdSomedayService = new StdSomedayService();
+        $data = $stdSomedayService->fetchAll($startDate, $endDate);
         return $this->successResponse(
             'Berhasil mengambil data STD Someday',
-            StdSomeday::with('driver')->get()
+            $data
         );
     }
 
