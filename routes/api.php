@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\CutoffInbounController;
 use App\Http\Controllers\Api\SocialiteController;
 use App\Http\Controllers\DriverController;
 use App\Http\Controllers\EstimasiArrivalController;
+use App\Http\Controllers\ExpediteController;
 use App\Http\Controllers\ImportBatchController;
 use App\Http\Controllers\InboundController;
 use App\Http\Controllers\ProjectionController;
@@ -38,6 +39,11 @@ Route::post('drivers/upload', [DriverController::class, 'importData']);
 Route::post('std-somedays/upload', [StdSomedayController::class, 'upload']);
 Route::post('std-somedays/reminder-courier', [StdSomedayController::class, 'reminderCourier']);
 Route::apiResource('std-somedays', StdSomedayController::class);
+// Expedite
+Route::prefix('expedites')->group(function () {
+    Route::get('/', [ExpediteController::class, 'index']);
+    Route::post('/import-data', [ExpediteController::class, 'uploadData']);
+});
 
 Route::get('/auth/{provider}/redirect', [SocialiteController::class, 'redirect']);
 Route::get('/auth/{provider}/callback', [SocialiteController::class, 'callback']);
