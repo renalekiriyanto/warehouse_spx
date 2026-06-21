@@ -3,6 +3,7 @@
 use App\Http\Controllers\AgencyController;
 use App\Http\Controllers\Api\CutoffInbounController;
 use App\Http\Controllers\Api\SocialiteController;
+use App\Http\Controllers\DamageController;
 use App\Http\Controllers\DriverController;
 use App\Http\Controllers\EstimasiArrivalController;
 use App\Http\Controllers\ExpediteController;
@@ -43,6 +44,14 @@ Route::apiResource('std-somedays', StdSomedayController::class);
 Route::prefix('expedites')->group(function () {
     Route::get('/', [ExpediteController::class, 'index']);
     Route::post('/import-data', [ExpediteController::class, 'uploadData']);
+});
+
+Route::prefix('damages')->group(function(){
+    Route::get('/', [DamageController::class, 'index']);
+    Route::get('/{damage}', [DamageController::class, 'fetchOne']);
+    Route::post('/', [DamageController::class, 'store']);
+    Route::put('/{damage}', [DamageController::class, 'update']);
+    Route::delete('/{damage}', [DamageController::class, 'delete']);
 });
 
 Route::get('/auth/{provider}/redirect', [SocialiteController::class, 'redirect']);
